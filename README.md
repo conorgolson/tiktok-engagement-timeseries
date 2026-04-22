@@ -1,9 +1,12 @@
 # TikTok Engagement Time Series Analysis
 
 ## Overview
-This project investigates whether external chess-related interest—measured using Google Trends, Chess.com activity, and Lichess activity—can predict TikTok engagement. Engagement is measured through weekly views and follower growth.
+This project investigates whether external chess-related interest measured using Google Trends can predict TikTok engagement. Engagement is measured through weekly views and follower growth.
 
 The analysis applies basic time series econometrics techniques, focusing on simplicity and interpretability given a relatively small sample size.
+
+## Implementation
+- R (tidyverse, lubridate, tseries)
 
 ---
 
