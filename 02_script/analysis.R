@@ -2,11 +2,11 @@
 # Conor Golson
 # Time Series Econometrics Project
 #
-# Topic: Predicting TikTok Engagement Using Google Trends
+# Topic: Association between TikTok Engagement & Chess popularity through Google Trends
 #
 # Objective:
 # Examine whether external chess-related search interest
-# (Google Trends) helps predict weekly TikTok views and
+# (Google Trends) is associated with weekly TikTok views and
 # follower growth.
 
 # Required packages:
@@ -103,7 +103,8 @@ ggplot(data, aes(x = week, y = views)) +
   labs(
     title = "Weekly TikTok Views",
     x = "Week",
-    y = "Views"
+    y = "Views",
+    color = ""
   ) +
   theme_classic()
 
@@ -114,7 +115,8 @@ ggplot(data, aes(x = week)) +
   labs(
     title = "Views vs Chess Interest",
     x = "Week",
-    y = "Scaled Values"
+    y = "Scaled Values",
+    color = ""
   ) +
   scale_color_manual(values = c("Views" = "blue", "Chess (Scaled)" = "red")) +
   theme_classic()
@@ -126,7 +128,8 @@ ggplot(data, aes(x = week)) +
   labs(
     title = "Views vs Chess.com Interest",
     x = "Week",
-    y = "Scaled Values"
+    y = "Scaled Values",
+    color = ""
   ) +
   scale_color_manual(values = c("Views" = "blue", "Chess.com (Scaled)" = "darkgreen")) +
   theme_classic()
@@ -138,7 +141,8 @@ ggplot(data, aes(x = week)) +
   labs(
     title = "Views vs Lichess Interest",
     x = "Week",
-    y = "Scaled Values"
+    y = "Scaled Values",
+    color = ""
   ) +
   scale_color_manual(values = c("Views" = "blue", "Lichess (Scaled)" = "purple")) +
   theme_classic()
@@ -175,22 +179,66 @@ adf.test(data$followers_diff)
 
 # Model Specification & Estimation
 
+# Create lagged variables
+data <- data %>%
+  arrange(week) %>%
+  mutate(
+    views_diff_lag1 = lag(views_diff, 1),
+    followers_diff_lag1 = lag(followers_diff, 1)
+  )
+
+# Filter once
+data <- data %>%
+  filter(
+    !is.na(views_diff_lag1),
+    !is.na(followers_diff_lag1)
+  )
+
 # Model Views without lagged views
 summary(lm(views_diff ~ chess_lag1 + chess_com_lag1 + lichess_lag1 + posts, data = data))
 
 # Model Views with lagged views
-data <- data %>%
-  mutate(views_diff_lag1 = lag(views_diff, 1)) %>%
-  filter(!is.na(views_diff_lag1))
-
 summary(lm(views_diff ~ views_diff_lag1 + chess_lag1 + chess_com_lag1 + lichess_lag1 + posts, data = data))
-
 
 # Model Followers without lagged followers
 summary(lm(followers_diff ~ chess_lag1 + chess_com_lag1 + lichess_lag1 + posts, data = data))
 
 # Model Followers with lagged followers
-summary(lm(followers_diff ~ lag(followers_diff,1) + chess_lag1 + chess_com_lag1 + lichess_lag1 + posts, data = data))
+summary(lm(followers_diff ~ followers_diff_lag1 + chess_lag1 + chess_com_lag1 + lichess_lag1 + posts, data = data))
+
+# ========================================
+
+# Robustness Checks
+
+# Remove posting control (identification check) 
+
+# Views no lag
+summary(lm(views_diff ~ chess_lag1 + chess_com_lag1 + lichess_lag1, data = data))
+
+# Followers no lag
+summary(lm(followers_diff ~ chess_lag1 + chess_com_lag1 + lichess_lag1, data = data))
+
+# Views with lag
+summary(lm(views_diff ~ views_diff_lag1 + chess_lag1 + chess_com_lag1 + lichess_lag1, data = data))
+
+# Followers with lag
+summary(lm(followers_diff ~ followers_diff_lag1 + chess_lag1 + chess_com_lag1 + lichess_lag1, data = data))
+
+#  Views per post normalization 
+data_vpp <- data %>%
+  mutate(views_per_post = ifelse(posts > 0, views / posts, NA))
+
+data_vpp <- data_vpp %>%
+  filter(!is.na(views_per_post))
+
+summary(lm(views_per_post ~ chess_lag1 + chess_com_lag1 + lichess_lag1, data = data_vpp))
+
+# With Lag
+data_vpp <- data_vpp %>%
+  mutate(views_per_post_lag1 = lag(views_per_post, 1)) %>%
+  filter(!is.na(views_per_post_lag1))
+
+summary(lm(views_per_post ~ views_per_post_lag1 + chess_lag1 + chess_com_lag1 + lichess_lag1, data = data_vpp))
 
 # ========================================
 
@@ -211,4 +259,4 @@ Box.test(residuals(lm(followers_diff ~ chess_lag1 + chess_com_lag1 + lichess_lag
 
 # ========================================
 
-write.csv(data, "final_dataset.csv", row.names = FALSE)
+# write.csv(data, "final_dataset.csv", row.names = FALSE)
